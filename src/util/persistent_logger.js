@@ -11,10 +11,10 @@ const dbg = require('./debug_module')(__filename);
 
 /**
  * PersistentLogger is a logger that is used to record data onto disk separated by newlines.
- * 
+ *
  * WAL should ideally use DirectIO to avoid fsyncgate (this does not)
  *   Refer: [Can applications recover from fsync failures?](https://ramalagappan.github.io/pdfs/papers/cuttlefs.pdf)
- * 
+ *
  * Cannot recover from bit rot (Use RAID or something).
  */
 class PersistentLogger {
@@ -24,7 +24,7 @@ class PersistentLogger {
      * @param {{
      *  poll_interval?: Number,
      *  locking?: "SHARED" | "EXCLUSIVE",
-     * }} cfg 
+     * }} cfg
      */
     constructor(dir, namespace, cfg) {
         this.dir = dir;
@@ -59,7 +59,7 @@ class PersistentLogger {
                 let fh = null;
                 try {
                     fh = await this._open();
-                    if (this.locking) await fh.flock(this.fs_context, this.locking);
+                    if (this.locking) await fh.fcntllock(this.fs_context, this.locking);
 
                     const fh_stat = await fh.stat(this.fs_context);
                     const path_stat = await nb_native().fs.stat(this.fs_context, this.active_path);
@@ -102,7 +102,7 @@ class PersistentLogger {
 
     /**
      * appends the given data to the log file
-     * @param {string} data 
+     * @param {string} data
      */
     async append(data) {
         const fh = await this.init();
@@ -216,7 +216,7 @@ class PersistentLogger {
 
     async _open() {
         await native_fs_utils._create_path(this.dir, this.fs_context);
-        return nb_native().fs.open(this.fs_context, this.active_path, 'as');
+        return nb_native().fs.open(this.fs_context, this.active_path, 'as+');
     }
 
     _poll_active_file_change(poll_interval) {
@@ -245,8 +245,8 @@ class PersistentLogger {
 
 class LogFile {
     /**
-     * @param {nb.NativeFSContext} fs_context 
-     * @param {string} log_path 
+     * @param {nb.NativeFSContext} fs_context
+     * @param {string} log_path
      */
     constructor(fs_context, log_path) {
         this.fs_context = fs_context;
@@ -257,8 +257,8 @@ class LogFile {
      * batch_and_consume takes 2 functins, first function iterates over the log file
      * line by line and can choose to add some entries to a batch and then the second
      * function will be invoked to a with a path to the persistent log.
-     * 
-     * 
+     *
+     *
      * The fact that this function allows easy iteration and then later on optional consumption
      * of that batch provides the ability to invoke this funcition recursively composed in whatever
      * order that is required.

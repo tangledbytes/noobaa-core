@@ -19,8 +19,8 @@ class NewlineReader {
     /**
      * NewlineReader allows to read a file line by line while at max holding one line + 4096 bytes
      * in memory.
-     * @param {nb.NativeFSContext} fs_context 
-     * @param {string} filepath 
+     * @param {nb.NativeFSContext} fs_context
+     * @param {string} filepath
      * @param {'EXCLUSIVE' | 'SHARED'} [lock]
      */
     constructor(fs_context, filepath, lock) {
@@ -72,10 +72,10 @@ class NewlineReader {
     /**
      * forEach takes a callback function and invokes it
      * with each line as parameter
-     * 
+     *
      * The callback function can return `false` if it wants
      * to stop the iteration.
-     * @param {(entry: string) => Promise<boolean>} cb 
+     * @param {(entry: string) => Promise<boolean>} cb
      * @returns {Promise<[number, boolean]>}
      */
     async forEach(cb) {
@@ -95,7 +95,7 @@ class NewlineReader {
      * forEachFilePathEntry is a wrapper around `forEach` where each entry in
      * log file is assumed to be a file path and the given callback function
      * is invoked with that entry wrapped in a class with some convenient wrappers.
-     * @param {(entry: NewlineReaderFilePathEntry) => Promise<boolean>} cb 
+     * @param {(entry: NewlineReaderFilePathEntry) => Promise<boolean>} cb
      * @returns {Promise<[number, boolean]>}
      */
     async forEachFilePathEntry(cb) {
@@ -115,8 +115,8 @@ class NewlineReader {
     async init() {
         let fh = null;
         try {
-            fh = await nb_native().fs.open(this.fs_context, this.path, 'r');
-            if (this.lock) await fh.flock(this.fs_context, this.lock);
+            fh = await nb_native().fs.open(this.fs_context, this.path, '+');
+            if (this.lock) await fh.fcntllock(this.fs_context, this.lock);
 
             this.fh = fh;
         } catch (error) {
