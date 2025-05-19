@@ -390,7 +390,7 @@ class BucketSpaceFS extends BucketSpaceSimpleFS {
                 dbg.log1('BucketSpaceFS.delete_bucket: namespace_bucket_config', namespace_bucket_config);
                 if (!namespace_bucket_config) throw new RpcError('INTERNAL_ERROR', 'Invalid Bucket configuration');
 
-                if (namespace_bucket_config.should_create_underlying_storage) {
+                if (config.NSFS_NC_FORCE_DELETE_ULS || namespace_bucket_config.should_create_underlying_storage) {
                     // 1. delete underlying storage (ULS = Underline Storage)
                     dbg.log1('BucketSpaceFS.delete_bucket: deleting uls', namespace_bucket_config.write_resource.path);
                     const bucket_storage_path = namespace_bucket_config.write_resource.path; // includes write_resource.path + bucket name (s3 flow)

@@ -1019,6 +1019,7 @@ config.VIRTUAL_HOSTS = process.env.VIRTUAL_HOSTS || '';
 config.NC_HEALTH_ENDPOINT_RETRY_COUNT = 3;
 config.NC_HEALTH_ENDPOINT_RETRY_DELAY = 10;
 
+config.NSFS_NC_FORCE_DELETE_ULS = false;
 
 /** @type {'file' | 'executable'} */
 config.NC_MASTER_KEYS_STORE_TYPE = 'file';
