@@ -107,6 +107,8 @@ class PersistentLogger {
     async append(data) {
         const fh = await this.init();
 
+        // or retry
+
         const buf = Buffer.from(data + '\n', 'utf8');
         await fh.write(this.fs_context, buf, buf.length);
         this.local_size += buf.length;
@@ -155,10 +157,8 @@ class PersistentLogger {
         let result = true;
         for (const file of filtered_files) {
             dbg.log1('Processing', this.dir, file);
-            const delete_processed = await cb(path.join(this.dir, file.name));
-            if (delete_processed) {
-                await nb_native().fs.unlink(this.fs_context, path.join(this.dir, file.name));
-            } else {
+            const deleted_processed = await cb(path.join(this.dir, file.name));
+            if (!deleted_processed) {
                 result = false;
             }
         }
@@ -168,7 +168,7 @@ class PersistentLogger {
     /**
      * process is a safe wrapper around _process function which creates a failure logger for the
      * callback function which allows persisting failures to disk
-     * @param {(file: string, failure_recorder: (entry: string) => Promise<void>) => Promise<boolean>} cb callback
+     * @param {(file: string, failure_recorder: (entry: string) => Promise<boolean>) => Promise<boolean>} cb callback
      */
     async process(cb) {
         let failure_log = null;
@@ -276,12 +276,13 @@ class LogFile {
      * of that batch provides the ability to invoke this funcition recursively composed in whatever
      * order that is required.
      * @param {(entry: string, batch_recorder: (entry: string) => Promise<void>) => Promise<void>} collect
-     * @param {(batch: string) => Promise<void>} [process]
-     * @returns {Promise<void>}
+     * @param {(batch: string) => Promise<boolean>} [process]
+     * @returns {Promise<boolean>}
      */
     async collect_and_process(collect, process) {
         let log_reader = null;
         let filtered_log = null;
+        let delete_processed = true;
         try {
             filtered_log = new PersistentLogger(
                 path.dirname(this.log_path),
@@ -300,7 +301,12 @@ class LogFile {
             if (filtered_log.local_size === 0) return;
 
             await filtered_log.close();
-            await process?.(filtered_log.active_path);
+            const deleted = await process?.(filtered_log.active_path);
+            if (deleted === false) {
+                delete_processed = false;
+                return false;
+            }
+            return true;
         } catch (error) {
             dbg.error('unexpected error in consuming log file:', this.log_path);
 
@@ -308,6 +314,9 @@ class LogFile {
             throw error;
         } finally {
             if (log_reader) {
+                if (delete_processed) {
+                    await nb_native().fs.unlink(this.fs_context, this.log_path);
+                }
                 await log_reader.close();
             }
 

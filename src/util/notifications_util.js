@@ -97,7 +97,7 @@ class Notificator {
             dbg.log1("process_notification_files node_namespace =", node_namespace, ", file =", entry.name);
             const log = get_notification_logger('EXCLUSIVE', node_namespace);
             try {
-                await log.process(async (file, failure_append) => await this._notify(this.fs_context, file, failure_append));
+                await log.process(async (file, failure_append) => this._notify(this.fs_context, file, failure_append));
             } catch (err) {
                 dbg.error('processing notifications log file failed', log.file);
                 throw err;
