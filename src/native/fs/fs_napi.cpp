@@ -176,6 +176,12 @@ static int (*dlsym_gpfs_unlinkat)(
 static int (*dlsym_gpfs_ganesha)(
     int op, void *oarg) = 0;
 
+#ifdef DISABLE_XATTR_FLAG
+    const bool disable_xattr = true;
+#else
+    const bool disable_xattr = false;
+#endif
+
 struct gpfs_ganesha_noobaa_arg
 {
     int noobaa_version;
@@ -735,7 +741,7 @@ struct Stat : public FSWorker
         SYSCALL_OR_RETURN(fstat(fd, &_stat_res));
         // With O_PATH The file itself is not opened, and other file operations (e.g., fgetxattr(2) - in our case),
         // fail with the error EBADF. https://man7.org/linux/man-pages/man2/open.2.html
-        if (!_use_lstat) {
+        if (!disable_xattr && !_use_lstat) {
             SYSCALL_OR_RETURN(get_fd_xattr(fd, _xattr, _xattr_get_keys));
             if (use_gpfs_lib()) {
                 GPFS_FCNTL_OR_RETURN(get_fd_gpfs_xattr(fd, _xattr, gpfs_error));
@@ -1149,6 +1155,9 @@ struct Readfile : public FSWorker
         if (info[2].ToBoolean()) {
             Napi::Object options = info[2].As<Napi::Object>();
             _read_xattr = options.Get("read_xattr").ToBoolean();
+            if (disable_xattr && _read_xattr) {
+                SetError("xattr not supported");
+            }
             load_xattr_get_keys(options, _xattr_get_keys);
         }
         Begin(XSTR() << "Readfile " << DVAL(_path));
@@ -1684,7 +1693,9 @@ struct FileStat : public FSWrapWorker<FileWrap>
         int fd = _wrap->_fd;
         CHECK_WRAP_FD(fd);
         SYSCALL_OR_RETURN(fstat(fd, &_stat_res));
-        SYSCALL_OR_RETURN(get_fd_xattr(fd, _xattr, _xattr_get_keys));
+        if (!disable_xattr) {
+            SYSCALL_OR_RETURN(get_fd_xattr(fd, _xattr, _xattr_get_keys));
+        }
         if (use_gpfs_lib()) {
             GPFS_FCNTL_OR_RETURN(get_fd_gpfs_xattr(fd, _xattr, gpfs_error));
         }

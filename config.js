@@ -715,6 +715,8 @@ assert(config.NAMESPACE_CACHING.DEFAULT_BLOCK_SIZE > config.INLINE_MAX_SIZE);
 // NAMESPACE FS //
 //////////////////
 
+config.NSFS_DISABLE_XATTR = true;
+
 config.NSFS_BUF_SIZE_XS = 4 * 1024;
 config.NSFS_BUF_SIZE_S = 64 * 1024;
 config.NSFS_BUF_SIZE_M = 1 * 1024 * 1024;

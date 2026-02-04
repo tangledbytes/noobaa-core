@@ -953,6 +953,10 @@ class NamespaceFS {
             // if entry is a directory object and its content size = 0 - return empty response
             const is_dir_content = this._is_directory_content(file_path, params.key);
             if (is_dir_content) {
+                if (config.NSFS_DISABLE_XATTR) {
+                    throw new Error('NOT SUPPORTED');
+                }
+
                 try {
                     const md_path = this._get_file_md_path(params);
                     const dir_stat = await nb_native().fs.stat(fs_context, md_path);
@@ -1136,6 +1140,9 @@ class NamespaceFS {
             await this._check_path_in_bucket_boundaries(fs_context, file_path);
 
             if (this.empty_dir_content_flow(file_path, params)) {
+                if (config.NSFS_DISABLE_XATTR) {
+                    throw new Error('NOT SUPPORTED');
+                }
                 const content_dir_info = await this._create_empty_dir_content(fs_context, params, file_path);
                 return content_dir_info;
             }
@@ -1309,7 +1316,13 @@ class NamespaceFS {
                 await this.append_to_migrate_wal(file_path);
             }
         }
-        if (fs_xattr && !is_dir_content) await target_file.replacexattr(fs_context, fs_xattr);
+        if (fs_xattr && !is_dir_content) {
+            if (config.NSFS_DISABLE_XATTR) {
+                dbg.warn('skipped setting fs_xattr config.NSFS_DISABLE_XATTR is true -', fs_xattr);
+            } else {
+                await target_file.replacexattr(fs_context, fs_xattr);
+            }
+        }
         // fsync
         if (config.NSFS_TRIGGER_FSYNC) await target_file.fsync(fs_context);
         dbg.log1('NamespaceFS._finish_upload:', open_mode, file_path, upload_path, fs_xattr);
@@ -1321,6 +1334,9 @@ class NamespaceFS {
 
         // when object is a dir, xattr are set on the folder itself and the content is in .folder file
         if (is_dir_content) {
+            if (config.NSFS_DISABLE_XATTR) {
+                throw new Error('NOT SUPPORTED');
+            }
             await this._assign_dir_content_to_xattr(fs_context, fs_xattr, { ...params, size: stat.size }, copy_xattr);
         }
         stat = await nb_native().fs.stat({ ...fs_context, disable_ctime_check: part_upload }, file_path);
@@ -1565,6 +1581,10 @@ class NamespaceFS {
     }
 
     async create_object_upload(params, object_sdk) {
+        if (config.NSFS_DISABLE_XATTR) {
+            throw new Error('NOT SUPPORTED');
+        }
+
         try {
             const fs_context = this.prepare_fs_context(object_sdk);
             await this._load_bucket(params, fs_context);
@@ -1608,6 +1628,10 @@ class NamespaceFS {
     //    2.3. copy the bytes to by_size file
     //    2.4. set on the part_md_file size, offset and etag xattr
     async upload_multipart(params, object_sdk) {
+        if (config.NSFS_DISABLE_XATTR) {
+            throw new Error('NOT SUPPORTED');
+        }
+
         const data_open_mode = 'w*';
         const md_open_mode = 'w+';
         const fs_context = this.prepare_fs_context(object_sdk);
@@ -1711,6 +1735,10 @@ class NamespaceFS {
     //         2.1.2. else - copy the prev part size file prefix to upload_path
     // 3. copy bytes of the current's part size file
     async complete_object_upload(params, object_sdk) {
+        if (config.NSFS_DISABLE_XATTR) {
+            throw new Error('NOT SUPPORTED');
+        }
+
         const part_size_to_fd_map = new Map(); // { size: fd }
         let read_file;
         let target_file;

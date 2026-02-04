@@ -23,7 +23,8 @@
     'targets': [{
 	'variables': {
             'BUILD_S3SELECT%':0,
-            'BUILD_S3SELECT_PARQUET%':0
+            'BUILD_S3SELECT_PARQUET%':0,
+            'DISABLE_XATTR%':1
         },
         'target_name': 'nb_native',
         'include_dirs': [
@@ -33,7 +34,10 @@
 	    ['BUILD_S3SELECT==1', {
 		'dependencies': ['s3select/s3select.gyp:s3select'],
 		'cflags': ['-DBUILD_S3SELECT=1']
-	    }]
+	    }],
+        ['DISABLE_XATTR==1', {
+          "defines": [ "DISABLE_XATTR_FLAG" ]
+        }]
 	],
         'dependencies': [
             '<@(napi_dependencies)',
